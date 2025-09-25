@@ -217,15 +217,17 @@ def process_p_scan_files(source_dir = "sources", files_idx=None, q_lim=68):
 
         linear_fits = np.array([r['linear_fit'] for r in results if 'linear_fit' in r])
 
+
         thre = (linear_fits[:,0] + linear_fits[:,2] * adc_list[-2]) * 350
         gain = linear_fits[:,2] * -350
         q_scores = np.array([r['q_score'] for r in results if 'q_score' in r])
 
-        enc = np.array([r['enc'] for r in results if 'enc' in r]) *350
+        enc = np.array([r['enc'][0] for r in results if 'enc' in r]) * 350
 
         q_str = f"{np.sum(q_scores)/128:.4f}"
         if np.sum(q_scores) > q_lim:
             q_str = f"{q_str} *** warning ***"
+
         table_values.append([f_name] + [x for v in (thre, gain, enc) for x in (np.mean(v), np.std(v))] + [q_str, int(np.sum(q_scores[1::2])), int(np.sum(q_scores[::2]))])
 
         # if generate_file_summary:
