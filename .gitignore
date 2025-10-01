@@ -1,3 +1,14 @@
+# Ignore VSCode connfig
+.vscode/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Ignore output folders
 images/
 logs/
 sources/

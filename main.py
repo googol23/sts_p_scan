@@ -19,6 +19,7 @@ from src.plotting import plot_s_curve
 from src.plotting import plot_linear_fit
 from src.plotting import plot_histogram
 
+
 from tabulate import tabulate
 
 import os
@@ -94,12 +95,22 @@ for h in (info_handler, warn_handler, debug_handler, console_handler):
 
 logger.propagate = False
 
+logger.info("Loading rules ...")
+import inspect
+import src.rule_set as rule_set
+# Get all functions defined in that module
+rules = {
+    name: obj
+    for name, obj in inspect.getmembers(rule_set, inspect.isfunction)
+    if obj.__module__ == rule_set.__name__ and name.startswith("rule_")
+}
+for idx,rule_name in enumerate(rules.keys()):
+    logger.info(f"Rule {idx} : {rule_name}")
 
 from multiprocessing import Pool, cpu_count, current_process
 cpu_count = cpu_count()
 
 def process_channel(df, adc_list, chn):
-    max_chi2 = 0.1
     df_channel = df[df["CH_value"] == chn]
     q_score = 0
 
@@ -116,7 +127,14 @@ def process_channel(df, adc_list, chn):
         if r is None:
             logger.warning(f"Channel {chn}, ADC {adc_list[j]} fit failed")
         else:
-            if r[-1] < 0.05:
+            # Check all user defined rules
+            all_passed = True
+            for rule in rules.values():
+                if not rule(r):
+                    all_passed = False
+                    break
+
+            if all_passed:
                 valid_adc_fit.append(adc_list[j])
 
         results[adc_list[j]] = r
@@ -230,19 +248,10 @@ def process_p_scan_files(source_dir = "sources", files_idx=None, q_lim=68):
 
         table_values.append([f_name] + [x for v in (thre, gain, enc) for x in (np.mean(v), np.std(v))] + [q_str, int(np.sum(q_scores[1::2])), int(np.sum(q_scores[::2]))])
 
-        # if generate_file_summary:
-        #     labels = ['Empty Channel']
-        #     values = [np.sum(1 for r in results if r is None)]
-
-        #     with open(f"summary/{f_name}_summary.txt", "w") as summary_file:
-        #         for label, value in zip(labels, [f_name] + list(thre) + list(gain) + list(enc) + [q_str]):
-        #             summary_file.write(tabulate(values, headers=labels, tablefmt='simple', floatfmt=".3f"))
-
-
-        if True:
-            # for chn, r in enumerate(results):
-            #     plot_s_curve(chn, adc_list[:-1], r, df)
-            #     plot_linear_fit(chn, r)
+        if False:
+            for chn, r in enumerate(results):
+                plot_s_curve(chn, adc_list[:-1], r, df)
+                plot_linear_fit(chn, r)
 
             fig, axs = plt.subplots(1, 2, figsize=(9, 4))
             h_thre = plot_histogram(thre, 'Thr', "Entries", axs[0])
